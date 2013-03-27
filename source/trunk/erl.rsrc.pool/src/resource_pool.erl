@@ -105,6 +105,7 @@ borrow(Pool_name) ->
   case gen_server:call(Pool_name, borrow, ?GEN_SERVER_TIMEOUT) of
     {ok, Resource} -> Resource;
     {error, pool_exhausted} -> {error, pool_exhausted};
+    {error, E} -> {error, E};
     {wait, Max_wait} ->
       Receive =
       receive
