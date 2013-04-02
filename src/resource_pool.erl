@@ -47,7 +47,13 @@ new(Pool_name, Factory_module, Resource_metadata) ->
 %%<p>The available options are:</p>
 %%<dl>
 %%  <dt><code>{max_active, integer()}</code></dt>
-%%  <dd></dd>
+%%  <dd>controls the maximum number of objects that can be allocated by the pool
+%%  (checked out to clients, or idle awaiting checkout) at a given time. 
+%%  When non-positive, there is no limit to the number of objects that can be managed
+%%  by the pool at one time.
+%%  When <code>max_active</code> is reached, the pool is said
+%%  to be exhausted. The default setting for this parameter is 8.
+%%  </dd>
 %%  <dt><code>{max_idle, integer()}</code></dt>
 %%  <dd></dd>
 %%  <dt><code>{min_idle, integer()}</code></dt>

@@ -113,7 +113,7 @@ handle_call(borrow, {Owner, _} = From, State) ->
   Num_idle = length(Idle),
 %  io:format(user, " >>> resource_pool_srv:handle_call(borrow, ..) from ~p : ~p  ~p ~p~n", [Owner, Active, Idle, State#state.waiting]),
   case Idle of
-    _ when (Num_active >= State#state.max_active) and (Action =/= grow) -> 
+    _ when (State#state.max_active > 0) andalso ((Num_active >= State#state.max_active) and (Action =/= grow)) -> 
       case Action of
         fail -> {reply, {error, pool_exhausted}, State};
         block -> 
