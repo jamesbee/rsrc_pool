@@ -29,6 +29,8 @@
 %%
 -include("settings.hrl").
 
+-define(OPTION_NAMES,[max_active, max_idle, min_idle, test_on_borrow, test_on_return, fifo, when_exhausted_action, max_wait, max_idle_time]).
+
 %% API functions export
 -export([new/3, new/4, borrow/1, return/2, add/1, invalidate/2, get_num_active/1, get_num_idle/1, get_number/1, clear/1, close/1]).
 
@@ -55,25 +57,73 @@ new(Pool_name, Factory_module, Resource_metadata) ->
 %%  to be exhausted. The default setting for this parameter is 8.
 %%  </dd>
 %%  <dt><code>{max_idle, integer()}</code></dt>
-%%  <dd></dd>
+%%  <dd>controls the maximum number of objects
+%%  that can sit idle in the pool at any time. When negative, there is no
+%%  limit to the number of objects that may be idle at one time. The default
+%%  setting for this parameter equals <code>max_active</code>.
+%%  </dd>
 %%  <dt><code>{min_idle, integer()}</code></dt>
-%%  <dd></dd>
+%%  <dd>The minimum number of "sleeping" instances in the pool. Default value is 0.</dd>
 %%  <dt><code>{test_on_borrow, boolean()}</code></dt>
-%%  <dd></dd>
+%%  <dd> When <i>test_on_borrow</i> is set, the pool will
+%%    attempt to validate each object before it is returned from the
+%%    borrow function. (Using the provided resource factory's
+%%    validate function.). Objects that fail
+%%    to validate will be dropped from the pool, and a different object will
+%%    be borrowed. The default setting for this parameter is
+%%    <code>false.</code>
+%%  </dd>
 %%  <dt><code>{test_on_return, boolean()}</code></dt>
-%%  <dd></dd>
+%%  <dd> When <i>test_on_return</i> is set, the pool will
+%%    attempt to validate each object before it is returned to the pool in the
+%%    return function. (Using the provided resource factory's
+%%    validate
+%%    function.) Objects that fail to validate will be dropped from the pool.
+%%    The default setting for this parameter is <code>false.</code></dd>
 %%  <dt><code>{fifo, boolean()}</code></dt>
-%%  <dd></dd>
+%%  <dd> The pool can be configured to behave as a LIFO queue with respect to idle
+%% objects - always returning the most recently used object from the pool,
+%% or as a FIFO queue, where borrow always returns the oldest object
+%% in the idle object pool.
+%%   <i>fifo</i>
+%%   determines whether or not the pool returns idle objects in
+%%   first-in-first-out order. The default setting for this parameter is
+%%   <code>false.</code>
+%%
+%%  </dd>
 %%  <dt><code>{when_exhausted_action, (fail | block | grow)}</code></dt>
-%%  <dd></dd>
+%%  <dd>specifies the
+%%  behavior of the <code>borrow</code> function when the pool is exhausted:
+%%  <dl>
+%%    <dt>fail</dt>
+%%    <dd>will return an error.</dd>
+%%    <dt>block</dt>
+%%    <dd>will block until a new or idle object is available.
+%%      If a positive <i>maxWait</i>
+%%      value is supplied, then <code>borrowObject</code> will block for at
+%%      most that many milliseconds, after which an error
+%%      will be returned. If <i>maxWait</i> is non-positive,
+%%      the <code>borrowObject</code> function will block infinitely.</dd>
+%%    <dt>grow</dt>
+%%    <dd>will create a new object and return it (essentially making <i>maxActive</i> meaningless.)</dd>
+%%  </dl>The default <code>whenExhaustedAction</code> setting is
+%%    <code>block</code> and the default <code>maxWait</code>
+%%    setting is <i>infinity</i>. By default, therefore, <code>borrow</code> will
+%%    block infinitely until an idle instance becomes available.
+%%  </dd>
 %%  <dt><code>{max_wait, (integer() | infinity)}</code></dt>
-%%  <dd></dd>
+%%  <dd>The action to take when the <code>borrow</code> function
+%% is invoked when the pool is exhausted (the maximum number
+%% of "active" objects has been reached).</dd>
 %%  <dt><code>{max_idle_time, (integer() | infinity)}</code></dt>
-%%  <dd></dd>
+%%  <dd>The maximum amount of time an object may sit idle in the pool,
+%% with the extra condition that at least
+%% "minIdle" amount of object remain in the pool.
+%% When infinity, no objects will be evicted from the pool
+%% due to idle time alone.</dd>
 %%</dl>
 new(Pool_name, Factory_module, Resource_metadata, Options) ->
-  FailedOptions = lists:filter(fun({Key, _}) -> not lists:member(Key, 
-    [max_active, max_idle, min_idle, test_on_borrow, test_on_return, fifo, when_exhausted_action, max_wait, max_idle_time]) end, Options),
+  FailedOptions = lists:filter(fun({Key, _}) -> not lists:member(Key, ?OPTION_NAMES) end, Options),
   case FailedOptions of
     [] ->
       case is_factory(Factory_module) of
