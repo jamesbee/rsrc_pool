@@ -140,7 +140,7 @@ handle_call(borrow, {Owner, _} = From, State) ->
       Pid ! cancel,
       case (not State#state.test_on_borrow) orelse Factory_mod:validate(Rsrc_MD, Resource) of
         true ->
-          Factory_mod:activate(Rsrc_MD, Resource),
+          Factory_mod:activate({Rsrc_MD, Owner}, Resource),
           {reply, {ok, Resource}, State#state{idle = New_idle, active = [{Resource, Owner} | Active]}};
         false ->
           Factory_mod:destroy(Rsrc_MD, Resource),
