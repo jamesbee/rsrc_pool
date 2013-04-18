@@ -125,6 +125,7 @@ handle_call(borrow, {Owner, _} = From, State) ->
     _ when Num_idle =< State#state.min_idle ->
       case Factory_mod:create(Rsrc_MD) of
         {ok, Resource} when (Num_idle =:= State#state.min_idle) ->
+          Factory_mod:activate({Rsrc_MD, Owner}, Resource),
           {reply, {ok, Resource}, State#state{active = [{Resource, Owner} | Active]}};
         {ok, Resource} ->
           handle_call(borrow, From, State#state{idle = add_to_idle(Resource, State)});
