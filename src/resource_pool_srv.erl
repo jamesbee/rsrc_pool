@@ -213,6 +213,8 @@ handle_cast({return, Resource, Requester}, State) ->
           case (not State#state.test_on_borrow) orelse Factory_mod:validate(Rsrc_MD, Resource) of
             true ->
 %  io:format(user, " --- resource_pool_srv:handle_cast(return, ..): Wait_clt:~p Other_Wait:~p ~n", [Waiting_client, Others]),
+              Factory_mod:passivate(Rsrc_MD, Resource),
+              Factory_mod:activate({Rsrc_MD, Waiting_client}, Resource),
               Waiting_client ! {ok, Resource},
               {noreply, State#state{active = lists:keyreplace(Resource, 1, Active, {Resource, {tmp, Waiting_client}}), waiting = lists:reverse(Others)}};
             false ->
