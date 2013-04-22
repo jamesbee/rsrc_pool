@@ -21,11 +21,16 @@
 <h3>Introduction</h3>
 Resource pool project was inspired by Apache Commons Pool library and API was borrowed from there. But internal 
 implementation is completely different and is using Erlang OTP design principles and Erlang concurrent model. Resource Pool
-is Erlang application library and main module of the project (resource_pool_srv.erl) implements gen_server behavior.   
+is Erlang application library.   
 
 <h3>Structure</h3>
-Resource Pool main module is <source>resource_pool_srv.erl</source>. Other module <source>resource_pool.erl</source> works as 
-a facade for gen_server and exposes all API functions. 
+<ul>
+  <li><code>resource_pool_srv.erl</code> is a main module of Resource Pool. It is generic server and implements
+almost all Pool functionality.</li>
+  <li><code>resource_pool.erl</code> is a facade for gen_server and exposes all API functions.</li>
+  <li><code>resource_factory.erl</code> defines <i>resource_factory</i> behaviour and acts as a template and 
+simple implementation resource factory for testing purpose.</li>
+</ul>
 
 <h3>Getting started</h3>
 
