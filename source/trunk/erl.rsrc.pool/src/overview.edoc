@@ -33,7 +33,30 @@ simple implementation resource factory for testing purpose.</li>
 </ul>
 
 <h3>Getting started</h3>
-
+<ol>
+  <li>Create instance of Resource Pool<br/> 
+    <code>{ok, Pid} = resource_pool:new(test_pool, resource_factory)</code><br/> 
+    where: 
+    <ul style="list-style-type:none;">
+      <li><code>test_pool</code> - registered name of the new pool;<br/></li>
+      <li><code>resource_factory</code> - name of a module that implements resource_factory behaviour.</li>
+    </ul>
+    New resource pool is usually shared between few processes.  
+  </li>
+  <li>Borrow resource from pool<br/>
+    <code>Resource = resource_pool:borrow(test_pool)</code>
+    The process can use the borrowed resource and has to return to pool after finish. 
+  </li>
+  <li>Return resource to pool<br/>
+      <code>ok = resource_pool:return(test_pool, Resource)</code><br/>
+      The process can not use the <code>Resource</code> anymore.
+  </li>
+  <li>Pool can be created with options:<br/>
+    <code>Options = [{max_active, 10}, {when_exhausted_action, fail}]</code><br/> 
+    <code>{ok, Pid} = resource_pool:new(test_pool, resource_factory, Options)</code><br/>
+    See resource_pool for more details about options. 
+  </li>
+</ol>
 @reference 
 @since 2013-03-25
 @title Erlang Resource Pool.
