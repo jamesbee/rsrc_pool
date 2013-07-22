@@ -24,10 +24,6 @@
 			<arg line="-noshell"/>
 			<arg line="-s c cd ${basedir}/ebin"/>
 			<arg line="-run doc gen ${basedir} ${version}"/> 
-<!--			
-			<arg line="-eval 'doc:gen(&#8220;C:\\ECLIPSE\\data\\workspace\\erl.mysql.client&#8221;).'"/> 
-			<arg line="-eval 'edoc:application(MySQL_Client, ${basedir}, [{overview, [${basedir}, /src/overview.edoc]}])'" />
--->
 			<arg line="-s init stop"/>
 		</exec>
 		<copy file="${basedir}/priv/stylesheet.css" tofile="${basedir}/doc/stylesheet.css" overwrite="true"/>
