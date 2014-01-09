@@ -52,21 +52,21 @@ resource_pool_test_() ->
       fun resource_pool_tests:do_cleanup/2, 
       [
         {add, fun add/2},
-        {add_max_idle, fun add_max_idle/2}
+        {add_max_idle, fun add_max_idle/2},
+        {add_max_idle_neg, fun add_max_idle_neg/2}
       ]
     }
-	]
-.
+	].
 
 do_setup(X) ->
   ?debug_Fmt("setup: ~p", [X]), 
   Options = set(X),   
   {ok, Pid} = resource_pool:new(test_pool, factory, 0, Options),
-  Pid
-.
+  Pid.
 
 set(add) -> [];
-set(add_max_idle) -> [{max_active, 2},{max_idle, 2}];
+set(add_max_idle) -> [{max_active, 2}, {max_idle, 2}];
+set(add_max_idle_neg) -> [{max_idle, -1}];
 set(_) -> [].
 
 add(_X, Pool) -> fun() ->
@@ -75,9 +75,11 @@ add(_X, Pool) -> fun() ->
   resource_pool:add(Pool),
   ?assertEqual(2, f()),
   ?assertEqual({1,1}, f2()),
+  resource_pool_tests:check_activate_passivate(Pool),
 
   resource_pool:borrow(Pool),
   ?assertEqual({2,0}, f2()),
+  resource_pool_tests:check_activate_passivate(Pool),
   ?PASSED
 end.
 
@@ -89,11 +91,26 @@ add_max_idle(_X, Pool) -> fun() ->
   resource_pool:return(Pool, R2),
   ?assertEqual(2, f()),
   ?assertEqual({0,2}, f2()),
+  resource_pool_tests:check_activate_passivate(Pool),
+
   resource_pool:add(Pool),
   ?assertEqual(2, f()),
   ?assertEqual({0,2}, f2()),
+  resource_pool_tests:check_activate_passivate(Pool),
   ?PASSED
 end.
+
+add_max_idle_neg(_X, Pool) -> fun() ->
+  [resource_pool:add(Pool) || _N <- lists:seq(1, 10)],
+  ?assertEqual({0, 10}, f2()),
+  resource_pool_tests:check_activate_passivate(Pool),
+
+  [resource_pool:add(Pool) || _N <- lists:seq(1, 10)],
+  ?assertEqual({0, 20}, f2()),
+  resource_pool_tests:check_activate_passivate(Pool),
+  ?PASSED
+end.
+
 %%
 %% Local Functions
 %%

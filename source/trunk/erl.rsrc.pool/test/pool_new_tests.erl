@@ -58,8 +58,7 @@ resource_pool_test_() ->
         {wrong_option, fun new_errors_wrong_opt/2}
       ]
     }
-	]
-.
+	].
 
 do_setup(X) ->
   ?debug_Fmt("setup: ~p", [X]), 
@@ -71,8 +70,7 @@ do_setup(X) ->
   case R of
     {ok, Pid} -> Pid;
     {error, _} -> R
-  end
-.
+  end.
 
 set(default) -> {resource_factory, []};
 set(custom) -> {resource_factory, [
@@ -95,8 +93,7 @@ do_cleanup(_X, R) ->
   case is_pid(R) of
     true -> close_pool(R);
     false -> ok
-  end
-.
+  end.
 
 new_default(_X, Pool) -> fun() ->
 %%  ?debug_Fmt("    : pool new test: ~p",[X]),

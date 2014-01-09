@@ -34,36 +34,31 @@
 %% 
 %% @doc Creates new connection to MySQL server.
 create(_Resource_metadata) ->
-  tst_resource:create()
-.
+  tst_resource:create().
 
 %% @spec destroy(Resource_metadata::term(), _Resource::pid()) -> noreturn()
 %% 
 %% @doc Destroyes resource - connection to server. 
 destroy(_Resource_metadata, Resource) ->
-  tst_resource:stop(Resource)
-.
+  tst_resource:stop(Resource).
 
 %% @spec validate(Resource_metadata::term(), _Resource::pid()) -> boolean()
 %% 
 %% @doc Validate connection: if connection is alive returns true, otherwise - false.
 validate(_Resource_metadata, Resource) ->
-  tst_resource:is_valid(Resource)
-.
+  tst_resource:is_valid(Resource).
 
-%% @spec activate(Resource_metadata::term(), _Resource::pid()) -> ok
+%% @spec activate(Resource_metadata::term(), _Resource::pid()) -> true
 %% 
 %% @doc Some action during activation of connection before moving resource from pool to client - no implementation yet.
-activate(_Resource_metadata, _Resource) ->
-  ok
-.
+activate(_Resource_metadata, Resource) ->
+  tst_resource:set_active(Resource, true).
 
-%% @spec passivate(Resource_metadata::term(), _Resource::pid()) -> ok
+%% @spec passivate(Resource_metadata::term(), _Resource::pid()) -> false
 %% 
 %% @doc Some action during passivation of connection after returning resource from use to pool - no implementation for awhile.
-passivate(_Resource_metadata, _Resource) ->
-  ok
-.
+passivate(_Resource_metadata, Resource) ->
+  tst_resource:set_active(Resource, false).
 
 %% ====================================================================
 %% Internal functions

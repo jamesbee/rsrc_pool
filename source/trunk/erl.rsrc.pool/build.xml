@@ -10,7 +10,7 @@
 	<!--=================================
 				target: default
 			=================================-->
-	<target name="default" depends="compile, eunit, example, clean" description="">
+	<target name="default" depends="compile, eunit, clean" description="">
 	</target>
 
   <target name="compile" depends="" description="">
@@ -24,14 +24,7 @@
   <target name="eunit" depends="" description="">
     <exec executable="${rebar-path}/rebar" dir="${basedir}">
       <env key="PATH" path="${env.PATH}:${rebar-path}"/>
-      <arg line="eunit suites=my_tests"/>
-    </exec> 
-  </target>
-
-  <target name="example" depends="" description="">
-    <exec executable="${rebar-path}/rebar" dir="${basedir}">
-      <env key="PATH" path="${env.PATH}:${rebar-path}"/>
-      <arg line="eunit suites=example_tests"/>
+      <arg line="eunit"/>
     </exec> 
   </target>
 

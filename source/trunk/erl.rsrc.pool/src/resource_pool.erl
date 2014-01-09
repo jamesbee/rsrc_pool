@@ -122,8 +122,7 @@ new(Pool_name, Factory_module, Resource_metadata, Options) ->
          {error, _} = Er -> Er
       end;
     [{K, _} | T] -> {error, "Wrong options: " ++ lists:concat([K | lists:map(fun({Key, _}) -> ", " ++ atom_to_list(Key) end, T)])}
-  end
-.
+  end.
 
 %% @spec is_factory(Factory_module) -> boolean()
 %% @doc
@@ -141,8 +140,7 @@ is_factory(Factory_module) ->
           end;
         false -> {error, not_factory}
       end
-  end
-.
+  end.
 
 %% @spec borrow(Pool_name::atom() | pid()) -> Resource | {error, Reason}
 %% 
@@ -165,61 +163,52 @@ borrow(Pool_name) ->
       after 0 -> ok
       end,
       Receive
-  end
-.
+  end.
 
 %% @spec return(Pool_name::atom(), Resource::term()) -> ok
 %% 
 %% @doc Returns resource to pool after client does not need it more.
 return(Pool_name, Resource) ->
-  gen_server:cast(Pool_name, {return, Resource, self()})
-.
+  gen_server:cast(Pool_name, {return, Resource, self()}).
 
 %% @spec add(Pool_name::atom()) -> ok
 %% 
 %% @doc Adds one more resource to pool (as an idle resource).
 add(Pool_name) ->
-  gen_server:cast(Pool_name, add)
-.
+  gen_server:cast(Pool_name, add).
 
 %% @spec invalidate(Pool_name::atom(), Resource::term()) -> ok
 %% 
 %% @doc Invalidates resource - makes it ready to dispose.
 invalidate(Pool_name, Resource) ->
-  gen_server:call(Pool_name, {invalidate, Resource}, ?GEN_SERVER_TIMEOUT)
-.
+  gen_server:call(Pool_name, {invalidate, Resource}, ?GEN_SERVER_TIMEOUT).
 
 %% @spec get_num_active(Pool_name::atom()) -> integer()
 %% 
 %% @doc Returns number of active (busy) resource in pool.
 get_num_active(Pool_name) ->
-  gen_server:call(Pool_name, get_num_active, ?GEN_SERVER_TIMEOUT)
-.
+  gen_server:call(Pool_name, get_num_active, ?GEN_SERVER_TIMEOUT).
 
 %% @spec get_num_idle(Pool_name::atom()) -> integer()
 %% 
 %% @doc Returns number of idle (ready to use) resource in pool.
 get_num_idle(Pool_name) ->
-  gen_server:call(Pool_name, get_num_idle, ?GEN_SERVER_TIMEOUT)
-.
+  gen_server:call(Pool_name, get_num_idle, ?GEN_SERVER_TIMEOUT).
 
 %% @spec get_number(Pool_name::atom()) -> integer()
 %% 
 %% @doc Returns total number of resource in pool.
 get_number(Pool_name) ->
-  gen_server:call(Pool_name, get_number, ?GEN_SERVER_TIMEOUT)
-.
+  gen_server:call(Pool_name, get_number, ?GEN_SERVER_TIMEOUT).
 
 %% @spec clear(Pool_name::atom()) -> ok
 %% 
 %% @doc Disposes all resources from the pool.
 clear(Pool_name) ->
-  gen_server:cast(Pool_name, clear)
-.
+  gen_server:cast(Pool_name, clear).
 
 %% @spec close(Pool_name::atom()) -> ok
 %% 
 %% @doc Disposes all resources from the pool and close the pool (shut down generic server). 
 close(Pool_name) ->
-  gen_server:cast(Pool_name, close)
-.
+  gen_server:cast(Pool_name, close).

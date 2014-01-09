@@ -38,7 +38,25 @@
 %%
 %% Exported Functions
 %%
--export([close_pool/1, do_cleanup/2, f/0, f2/0, worker/3]).
+-export([close_pool/1, do_cleanup/2, f/0, f2/0, check_activate_passivate/1, worker/3]).
+
+%% redefine inner record for testing only.
+-record(state, {
+  active = [] :: list(),
+  idle = [] :: list(),
+  waiting = [] :: list(),
+  max_active = 8 :: integer(),
+  max_idle = 8 :: integer(),
+  min_idle = 0 :: integer(),
+  test_on_borrow = false :: boolean(),
+  test_on_return = false :: boolean(),
+  fifo = false :: boolean(),
+  when_exhausted_action = block :: fail | grow | block,
+  max_wait = infinity :: integer() | infinity,
+  max_idle_time = infinity :: integer() | infinity,
+  factory_module :: atom(),
+  resource_metadata :: term()
+}).
 
 %%
 %% API Functions
@@ -58,12 +76,16 @@ resource_pool_test_() ->
         {stress_test_3, fun stress_test/2}
       ]
     }
-	]
-.
+	].
 
 f() -> resource_pool:get_number(test_pool).
 
 f2() -> {resource_pool:get_num_active(test_pool), resource_pool:get_num_idle(test_pool)}.
+
+check_activate_passivate(Pool) ->
+  State = gen_server:call(Pool, get_state),
+  [?assert(tst_resource:is_active(Rsrc)) || {Rsrc, _} <- State#state.active],
+  [?assertNot(tst_resource:is_active(Rsrc)) || {Rsrc, _} <- State#state.idle].
 
 close_pool(R) ->
   Pid =
@@ -78,15 +100,13 @@ close_pool(R) ->
   case is_pid(Pid) andalso is_process_alive(Pid) of
     true -> timer:sleep(100), resource_pool:close(Pid), close_pool(R);
     false -> ok
-  end
-.
+  end.
 
 do_setup(X) ->
   ?debug_Fmt("setup: ~p", [X]), 
   Options = set(X),   
   {ok, Pid} = resource_pool:new(test_pool, factory, 0, Options),
-  Pid
-.
+  Pid.
 
 set(stress_test_1) -> [{max_active, 20}, {when_exhausted_action, block}, {max_wait, 1}];
 set(stress_test_2) -> [{max_active, 20}, {when_exhausted_action, block}, {max_wait, 10}];
@@ -95,45 +115,44 @@ set(_) -> [].
 
 do_cleanup(_X, R) ->
 %%  ?debug_Fmt("cleanup: ~p, ~p",[_X, R]),
-  close_pool(R)
-.
+  close_pool(R).
 
 pool(_X, Pool) -> fun() ->
 %  ?debug_Fmt("    : pool common test: ~p",[_X]),
   Rsrc = resource_pool:borrow(Pool),
 
   ?assertEqual(1, f()),
-  ?assertEqual({1,0}, f2()),
+  ?assertEqual({1, 0}, f2()),
 
   resource_pool:return(Pool, Rsrc),
   ?assertEqual(1, f()),
-  ?assertEqual({0,1}, f2()),
+  ?assertEqual({0, 1}, f2()),
   Rsrc1 = resource_pool:borrow(Pool),
   Rsrc2 = resource_pool:borrow(Pool),
   Rsrc3 = resource_pool:borrow(Pool),
   resource_pool:borrow(Pool),
   ?assertEqual(4, f()),
-  ?assertEqual({4,0}, f2()),
+  ?assertEqual({4, 0}, f2()),
 
   resource_pool:return(Pool, Rsrc1),
   ?assertEqual(4, f()),
-  ?assertEqual({3,1}, f2()),
+  ?assertEqual({3, 1}, f2()),
 
   resource_pool:return(Pool, Rsrc1),
   ?assertEqual(4, f()),
-  ?assertEqual({3,1}, f2()),
+  ?assertEqual({3, 1}, f2()),
 
   resource_pool:return(Pool, Rsrc2),
   ?assertEqual(4, f()),
-  ?assertEqual({2,2}, f2()),
+  ?assertEqual({2, 2}, f2()),
 
   resource_pool:invalidate(Pool, Rsrc3),
   ?assertEqual(3, f()),
-  ?assertEqual({1,2}, f2()),
+  ?assertEqual({1, 2}, f2()),
 
   resource_pool:clear(Pool),
   ?assertEqual(0, f()),
-  ?assertEqual({0,0}, f2()),
+  ?assertEqual({0, 0}, f2()),
   ?PASSED
 end.
 
@@ -143,13 +162,13 @@ invalidate(_X, Pool) -> fun() ->
   Rsrc = resource_pool:borrow(Pool),
   resource_pool:borrow(Pool),
   resource_pool:borrow(Pool),
-  ?assertEqual({4,0}, f2()),
+  ?assertEqual({4, 0}, f2()),
   Ok = resource_pool:invalidate(Pool, Rsrc),
   ?assertMatch(Ok, ok),
-  ?assertEqual({3,0}, f2()),
+  ?assertEqual({3, 0}, f2()),
   Er = resource_pool:invalidate(Pool, Rsrc),
   ?assertMatch(Er, {error, not_active}),
-  ?assertEqual({3,0}, f2()),
+  ?assertEqual({3, 0}, f2()),
   Self = self(),
   spawn_link(fun() -> 
                Rsrc1 = resource_pool:borrow(Pool), 
@@ -159,7 +178,7 @@ invalidate(_X, Pool) -> fun() ->
     Pid ->
       Er1 = resource_pool:invalidate(Pool, Pid),
       ?assertMatch(Er1, {error, not_owner}),
-      ?assertEqual({4,0}, f2()) 
+      ?assertEqual({4, 0}, f2()) 
   end,
   ?PASSED
 end.
@@ -170,10 +189,10 @@ clear_check(_X, Pool) -> fun() ->
   resource_pool:borrow(Pool),
   resource_pool:add(Pool),
   resource_pool:add(Pool),
-  ?assertEqual({2,2}, f2()),
+  ?assertEqual({2, 2}, f2()),
 
   resource_pool:clear(Pool),
-  ?assertEqual({0,0}, f2()),
+  ?assertEqual({0, 0}, f2()),
   ?PASSED
 end.
 
@@ -182,9 +201,10 @@ stress_test(_X, Pool) -> {timeout, 1000, fun() ->
   M = 50,
   run_worker(N, M, Pool),
   wait_for(N),
-  L = gen_server:call(Pool, get_all_resources),
+  State = gen_server:call(Pool, get_state),
+  L = State#state.active ++ State#state.idle,
 %  ?debug_Fmt("STATE: ~p", [gen_server:call(Pool, get_state)]),
-  R = lists:foldl(fun(Rsrc, A) -> A + tst_resource:get_id(Rsrc) end, 0, L),
+  R = lists:foldl(fun({Rsrc, _}, A) -> A + tst_resource:get_id(Rsrc) end, 0, L),
   ?debug_Fmt("after test ~p", [R]),
   ?assertEqual(N * M, R),
   ?PASSED
@@ -197,8 +217,7 @@ run_worker(0, _, _) -> ok;
 run_worker(N, M, Pool) ->
 %  ?debug_Fmt("run worker ~p", [N]),
   spawn_link(?MODULE, worker, [M, Pool, self()]),
-  run_worker(N - 1, M, Pool)
-.
+  run_worker(N - 1, M, Pool).
 
 worker(0, _, Parent) -> 
   ?debug_Fmt("~p:: Done", [self()]), 
@@ -215,12 +234,10 @@ worker(N, Pool, Parent) ->
       resource_pool:return(Pool, Resource),
 %      ?debug_Fmt("~p:: after Return resource: ~p", [self(), Resource]),
       worker(N - 1, Pool, Parent)
-  end
-.
+  end.
 
 wait_for(0) -> ok;
 wait_for(N) ->
   receive
     done -> wait_for(N - 1)
-  end
-.
+  end.

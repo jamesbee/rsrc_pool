@@ -46,33 +46,28 @@ behaviour_info(_) ->
 %% 
 %% @doc Creates new resource.
 create(_Resource_metadata) ->
- {ok, make_ref()}
-.
+ {ok, make_ref()}.
 
 %% @spec destroy(_Resource_metadata::term(), _Resource::term()) -> noreturn()
 %% 
 %% @doc Destroyes a resource. 
 destroy(_Resource_metadata, _Resource) ->
-  ok
-.
+  ok.
 
 %% @spec validate(_Resource_metadata::term(), _Resource::term()) -> boolean()
 %% 
 %% @doc Validate resource: if resource is alive and valid then returns true, otherwise - false.
 validate(_Resource_metadata, _Resource) ->
-  true
-.
+  true.
 
 %% @spec activate(_Resource_metadata::term(), _Resource::term()) -> ok
 %% 
 %% @doc Some action during activation of a resource before moving the resource from pool to client (not implemented for default module).
 activate(_Resource_metadata, _Resource) ->
-  ok
-.
+  ok.
 
 %% @spec passivate(_Resource_metadata::term(), _Resource::term()) -> ok
 %% 
 %% @doc Some action during passivation of a resource after returning the resource from use to pool (not implemented for default module).
 passivate(_Resource_metadata, _Resource) ->
-  ok
-.
+  ok.
