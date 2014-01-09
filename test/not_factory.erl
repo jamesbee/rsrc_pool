@@ -33,36 +33,31 @@
 %% 
 %% @doc Creates new connection to MySQL server.
 create(_) ->
- {ok, make_ref()}
-.
+ {ok, make_ref()}.
 
 %% @spec destroy(Resource_metadata::term(), _Resource::pid()) -> noreturn()
 %% 
 %% @doc Destroyes resource - connection to server. 
 destroy(_, _) ->
-  ok
-.
+  ok.
 
 %% @spec validate(Resource_metadata::term(), _Resource::pid()) -> boolean()
 %% 
 %% @doc Validate connection: if connection is alive returns true, otherwise - false.
 validate(_, _) ->
-  true
-.
+  true.
 
 %% @spec activate(Resource_metadata::term(), _Resource::pid()) -> ok
 %% 
 %% @doc Some action during activation of connection before moving resource from pool to client - no implementation yet.
 activate(_, _) ->
-  ok
-.
+  ok.
 
 %% @spec passivate(Resource_metadata::term(), _Resource::pid()) -> ok
 %% 
 %% @doc Some action during passivation of connection after returning resource from use to pool - no implementation for awhile.
 passivate(_, _) ->
-  ok
-.
+  ok.
 
 %% ====================================================================
 %% Internal functions

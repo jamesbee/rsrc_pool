@@ -49,8 +49,7 @@ gen([Dir, Version]) ->
 %%				 {stylesheet_file, [Dir,"/priv/my.css"]}, 
 				 {sort_functions, false}, 
 				 {includes, [[Dir,"/include/"]]}
-				])
-.
+				]).
 %%
 %% Local Functions
 %%

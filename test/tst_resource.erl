@@ -1,7 +1,6 @@
 %% @author alexeikrasnopolski
 %% @doc @todo Add description to tst_resource.
 
-
 -module(tst_resource).
 -behaviour(gen_server).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -9,36 +8,37 @@
 %% ====================================================================
 %% API functions
 %% ====================================================================
--export([create/0, set_id/2, get_id/1, set_valid/2, is_valid/1, stop/1]).
+-export([create/0, set_id/2, get_id/1, set_valid/2, is_valid/1, set_active/2, is_active/1, stop/1]).
 
 %% {ok,Pid} | ignore | {error,Error}
 create() ->
-  gen_server:start_link(?MODULE, [], [])
-.
+  gen_server:start_link(?MODULE, [], []).
 
 set_id(Pid, Id) ->
-  gen_server:call(Pid, {set_id, Id})
-.
+  gen_server:call(Pid, {set_id, Id}).
 
 get_id(Pid) ->
-  gen_server:call(Pid, get_id)
-.
+  gen_server:call(Pid, get_id).
 
 set_valid(Pid, Valid) ->
-  gen_server:call(Pid, {set_valid, Valid})
-.
+  gen_server:call(Pid, {set_valid, Valid}).
 
 is_valid(Pid) ->
-  gen_server:call(Pid, is_valid)
-.
+  gen_server:call(Pid, is_valid).
+
+set_active(Pid, Active) ->
+  gen_server:call(Pid, {set_active, Active}).
+
+is_active(Pid) ->
+  gen_server:call(Pid, is_active).
 
 stop(Pid) ->
-  gen_server:cast(Pid, stop)
-.
+  gen_server:cast(Pid, stop).
+
 %% ====================================================================
 %% Behavioural functions 
 %% ====================================================================
--record(state, {valid = true :: boolean(), id = 0 :: integer()}).
+-record(state, {valid = true :: boolean(), active = false :: boolean(), id = 0 :: integer()}).
 
 %% init/1
 %% ====================================================================
@@ -75,12 +75,16 @@ init([]) ->
 %% ====================================================================
 handle_call(is_valid, _From, State) ->
   {reply, State#state.valid, State};
+handle_call(is_active, _From, State) ->
+  {reply, State#state.active, State};
 handle_call(get_id, _From, State) ->
   {reply, State#state.id, State};
 handle_call({set_id, Id}, _From, State) ->
   {reply, Id, State#state{id = Id}};
 handle_call({set_valid, Valid}, _From, State) ->
   {reply, Valid, State#state{valid = Valid}};
+handle_call({set_active, Active}, _From, State) ->
+  {reply, Active, State#state{active = Active}};
 handle_call(_, _From, State) ->
   {reply, ok, State}.
 

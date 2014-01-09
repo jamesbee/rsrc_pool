@@ -87,8 +87,7 @@ get_option_value(Name, Options, Default_value) ->
   case lists:keyfind(Name, 1, Options) of
     {Name, Value} -> Value;
     false         -> Default_value
-  end
-.
+  end.
 
 %% @spec handle_call(Request :: term(), From :: {pid(), Tag :: term()}, State :: term()) -> Result
 %% 	Result = {reply, Reply, NewState}
@@ -159,8 +158,8 @@ handle_call({ack_borrow, Receive}, {Waiting_client, _}, #state{active = Active, 
       end;
     Resource -> {reply, ok, State#state{active = lists:keyreplace({tmp, Waiting_client}, 2, Active, {Resource, Waiting_client})}}
   end;
-handle_call(get_all_resources, _From, State) ->
-  {reply, lists:map(fun({R, _}) -> R end, State#state.active ++ State#state.idle), State};
+%%handle_call(get_all_resources, _From, State) ->
+%%  {reply, lists:map(fun({R, _}) -> R end, State#state.active ++ State#state.idle), State};
 handle_call(get_state, _From, State) ->
   {reply, State, State};
 handle_call(get_number, _From, #state{active = Active, idle = Idle} = State) ->
@@ -176,8 +175,7 @@ handle_call({invalidate, Resource}, {Requester, _}, #state{active = Active, fact
       {reply, ok, State#state{active = lists:keydelete(Resource, 1, Active)}};
     {_, _} -> {reply, {error, not_owner}, State};
     false  -> {reply, {error, not_active}, State}
-  end
-.
+  end.
 
 %% handle_cast/2
 %% 
@@ -201,7 +199,7 @@ handle_cast({return, Resource, Requester}, State) ->
       case Waiting of
         [] ->
           New_idle =
-          case ((not State#state.test_on_return) orelse (Factory_mod:validate(Rsrc_MD, Resource))) andalso (length(Idle) < State#state.max_idle) of
+          case ((not State#state.test_on_return) orelse (Factory_mod:validate(Rsrc_MD, Resource))) andalso ((State#state.max_idle < 0) orelse (length(Idle) < State#state.max_idle)) of
             true -> add_to_idle(Resource, State);
             false ->
               Factory_mod:destroy(Rsrc_MD, Resource),
@@ -225,7 +223,7 @@ handle_cast({return, Resource, Requester}, State) ->
     {_, _} -> {noreply, State}
   end;
 handle_cast(add, #state{idle = Idle, factory_module = Factory_mod, resource_metadata = Rsrc_MD} = State) ->
-  case length(Idle) < State#state.max_idle of
+  case ((State#state.max_idle < 0) orelse (length(Idle) < State#state.max_idle)) of
     true ->
       case Factory_mod:create(Rsrc_MD) of
         {ok, Resource} ->
@@ -236,12 +234,16 @@ handle_cast(add, #state{idle = Idle, factory_module = Factory_mod, resource_meta
     false -> {noreply, State} 
   end;
 handle_cast({remove, {Resource, _}}, #state{idle = Idle, factory_module = Factory_mod} = State) ->
-  case lists:keytake(Resource, 1, Idle) of
-    false ->
-      {noreply, State};
-    {value, _, New_idle} ->
-      Factory_mod:destroy(State#state.resource_metadata, Resource),
-      {noreply, State#state{idle = New_idle}}
+  if
+    length(Idle) =< State#state.min_idle -> {noreply, State};
+    true                                 ->
+      case lists:keytake(Resource, 1, Idle) of
+        false ->
+          {noreply, State};
+        {value, _, New_idle} ->
+          Factory_mod:destroy(State#state.resource_metadata, Resource),
+          {noreply, State#state{idle = New_idle}}
+      end
   end;
 handle_cast(clear, #state{active = Active, idle = Idle, factory_module = Factory_mod} = State) ->
   lists:foreach(
@@ -321,6 +323,5 @@ add_to_idle(Resource, #state{idle = Idle, factory_module = Factory_mod, resource
         gen_server:cast(Self, {remove, {Resource, self()}})
     end
   end),
-  [{Resource, Pid} | Idle]
-.
+  [{Resource, Pid} | Idle].
 
