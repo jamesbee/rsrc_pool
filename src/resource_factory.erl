@@ -23,7 +23,6 @@
 %%
 
 -module(resource_factory).
--behaviour(resource_factory).
 
 %% ====================================================================
 %% API functions

@@ -33,7 +33,6 @@
 %% Import modules
 %%
 -import(resource_pool, []).
--import(resource_factory, []).
 -import(resource_pool_tests, [close_pool/1]).
 
 %%
@@ -72,8 +71,8 @@ do_setup(X) ->
     {error, _} -> R
   end.
 
-set(default) -> {resource_factory, []};
-set(custom) -> {resource_factory, [
+set(default) -> {factory, []};
+set(custom) -> {factory, [
     {max_active, 16},
     {max_idle, 12},
     {min_idle, 3},
@@ -83,9 +82,9 @@ set(custom) -> {resource_factory, [
     {when_exhausted_action, grow},
     {max_wait, 2500}
   ]};
-set(factory_not_exist) -> {resource_factory_1, []};
+set(factory_not_exist) -> {factory_1, []};
 set(not_factory) -> {not_factory, []};
-set(wrong_option) -> {resource_factory, [{wrong_option, 0}, {opt, 0}, {max_idle, 4}]};
+set(wrong_option) -> {factory, [{wrong_option, 0}, {opt, 0}, {max_idle, 4}]};
 set(_) -> [].
 
 do_cleanup(_X, R) ->
@@ -102,7 +101,7 @@ new_default(_X, Pool) -> fun() ->
   ?assert(is_process_alive(Pool)),
   State = gen_server:call(Pool, get_state),
 %%  ?debug_Fmt("       2. State: ~p",[State]),
-  ?assertMatch({state, [], [], [], 8, 8, 0, false, false, false, block, infinity, infinity, resource_factory, 0}, State),
+  ?assertMatch({state, [], [], [], 8, 8, 0, false, false, false, block, infinity, infinity, factory, 0}, State),
   ?PASSED
 end.
 
@@ -113,7 +112,7 @@ new_custom(_X, Pool) -> fun() ->
   ?assert(is_process_alive(Pool)),
   State = gen_server:call(test_pool, get_state),
 %%  ?debug_Fmt("       2. State: ~p",[State]),
-  ?assertMatch({state, [], [], [], 16, 12, 3, true, true, true, grow, 2500, infinity, resource_factory, 1}, State),
+  ?assertMatch({state, [], [], [], 16, 12, 3, true, true, true, grow, 2500, infinity, factory, 1}, State),
   ?PASSED
 end.
 
