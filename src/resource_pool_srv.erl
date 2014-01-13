@@ -158,8 +158,8 @@ handle_call({ack_borrow, Receive}, {Waiting_client, _}, #state{active = Active, 
       end;
     Resource -> {reply, ok, State#state{active = lists:keyreplace({tmp, Waiting_client}, 2, Active, {Resource, Waiting_client})}}
   end;
-%%handle_call(get_all_resources, _From, State) ->
-%%  {reply, lists:map(fun({R, _}) -> R end, State#state.active ++ State#state.idle), State};
+handle_call(get_all_resources, _From, State) ->
+  {reply, lists:map(fun({R, _}) -> R end, State#state.active ++ State#state.idle), State};
 handle_call(get_state, _From, State) ->
   {reply, State, State};
 handle_call(get_number, _From, #state{active = Active, idle = Idle} = State) ->

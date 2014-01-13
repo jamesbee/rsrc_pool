@@ -77,6 +77,7 @@ set(_) -> [].
 return_max_idle_time(_X, Pool) -> {timeout, 100, fun() ->
 %  ?debug_Fmt("    : pool return test: ~p",[X]),
   resource_pool:borrow(Pool),
+  ?assertEqual({1, 0}, f2()),
   Ref_a = resource_pool:borrow(Pool),
   tst_resource:set_id(Ref_a, 7),
 %  ?debug_Fmt("       1. Ref: ~p",[Ref_a]),
@@ -96,16 +97,15 @@ end}.
 
 return_max_idle_time_min_idle(_X, Pool) -> {timeout, 100, fun() ->
   resource_pool:borrow(Pool),
+  ?assertEqual({1, 2}, f2()),
   Ref_a = resource_pool:borrow(Pool),
   ?assertEqual({2, 2}, f2()),
   resource_pool_tests:check_activate_passivate(Pool),
   resource_pool:return(Pool, Ref_a),
-  ?assert(is_process_alive(Ref_a)),
   ?assertEqual({1, 3}, f2()),
   resource_pool_tests:check_activate_passivate(Pool),
   timer:sleep(250),
   ?assertEqual({1, 2}, f2()),
-  ?assert(not is_process_alive(Ref_a)),
   resource_pool_tests:check_activate_passivate(Pool),
   ?PASSED
 end}.
