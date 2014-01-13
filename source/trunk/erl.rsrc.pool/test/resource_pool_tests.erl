@@ -33,7 +33,6 @@
 %% Import modules
 %%
 -import(resource_pool, []).
--import(resource_factory, []).
 
 %%
 %% Exported Functions

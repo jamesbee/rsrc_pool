@@ -33,7 +33,6 @@
 %% Import modules
 %%
 -import(resource_pool, []).
--import(resource_factory, []).
 -import(resource_pool_tests, [f/0, f2/0]).
 
 %%
