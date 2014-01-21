@@ -148,8 +148,7 @@ is_factory(Factory_module) ->
 borrow(Pool_name) ->
   case gen_server:call(Pool_name, borrow, ?GEN_SERVER_TIMEOUT) of
     {ok, Resource} -> Resource;
-    {error, pool_exhausted} -> {error, pool_exhausted};
-    {error, E} -> {error, E};
+    {error, _E} = R -> R;
     {wait, Max_wait} ->
       Receive =
       receive
