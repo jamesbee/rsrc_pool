@@ -111,17 +111,17 @@ handle_call(borrow, {Owner, _} = From, State) ->
   Num_active = length(Active),
   Num_idle = length(Idle),
 %  io:format(user, " >>> resource_pool_srv:handle_call(borrow, ..) from ~p : ~p  ~p ~p~n", [Owner, Active, Idle, State#state.waiting]),
-  case Idle of
-    _ when (State#state.max_active > 0) andalso ((Num_active >= State#state.max_active) and (Action =/= grow)) -> 
+  if
+    (State#state.max_active > 0) andalso ((Num_active >= State#state.max_active) and (Action =/= grow)) -> 
       case Action of
         fail -> {reply, {error, pool_exhausted}, State};
         block -> 
           case lists:member(Owner, Waiting) of
-            true -> {reply, {wait, State#state.max_wait}, State};
+            true  -> {reply, {wait, State#state.max_wait}, State};
             false -> {reply, {wait, State#state.max_wait}, State#state{waiting = [Owner | Waiting]}}
           end
       end;
-    _ when Num_idle =< State#state.min_idle ->
+    Num_idle =< State#state.min_idle ->
       case Factory_mod:create(Rsrc_MD) of
         {ok, Resource} when (Num_idle =:= State#state.min_idle) ->
           Factory_mod:activate({Rsrc_MD, Owner}, Resource),
@@ -131,11 +131,10 @@ handle_call(borrow, {Owner, _} = From, State) ->
         {error, Err} ->
           {reply, {error, Err}, State}
       end;
-    [First | Idle_tail] ->
-      {{Resource, Pid}, New_idle} =
+    true ->
       case State#state.fifo of
-        true -> {First, Idle_tail};
-        false -> [Last | Idle_header] = lists:reverse(Idle), {Last, lists:reverse(Idle_header)} 
+        true  -> [{Resource, Pid} | New_idle] = Idle;
+        false -> {New_idle, [{Resource, Pid}]} = lists:split(Num_idle - 1, Idle) 
       end,
       Pid ! cancel,
       case (not State#state.test_on_borrow) orelse Factory_mod:validate(Rsrc_MD, Resource) of
@@ -147,17 +146,15 @@ handle_call(borrow, {Owner, _} = From, State) ->
           handle_call(borrow, From, State#state{idle = New_idle})
       end
   end;
-handle_call({ack_borrow, Receive}, {Waiting_client, _}, #state{active = Active, waiting = Waiting} = State) ->  
+handle_call({ack_borrow, {error, pool_timeout}}, {Waiting_client, _}, #state{active = Active, waiting = Waiting} = State) ->  
 %  io:format(user, " >>> resource_pool_srv:handle_call(ack_borrow, ..) from: ~p receive:~p active:~p~n", [Waiting_client, Receive, Active]),
-  case Receive of
-    {error, pool_timeout} -> 
-      case lists:keytake({tmp, Waiting_client}, 2, Active) of
-        false -> {reply, ok, State#state{waiting = lists:delete(Waiting_client, Waiting)}}; %% pure timeout
-        {value, {Resource, _}, New_active} ->
-          {reply, ok, State#state{active = New_active, idle = add_to_idle(Resource, State)}}
-      end;
-    Resource -> {reply, ok, State#state{active = lists:keyreplace({tmp, Waiting_client}, 2, Active, {Resource, Waiting_client})}}
+  case lists:keytake({tmp, Waiting_client}, 2, Active) of
+    false -> {reply, ok, State#state{waiting = lists:delete(Waiting_client, Waiting)}}; %% pure timeout
+    {value, {Resource, _}, New_active} -> {reply, ok, State#state{active = New_active, idle = add_to_idle(Resource, State)}}
   end;
+handle_call({ack_borrow, Resource}, {Waiting_client, _}, #state{active = Active} = State) ->  
+%  io:format(user, " >>> resource_pool_srv:handle_call(ack_borrow, ..) from: ~p receive:~p active:~p~n", [Waiting_client, Receive, Active]),
+  {reply, ok, State#state{active = lists:keyreplace({tmp, Waiting_client}, 2, Active, {Resource, Waiting_client})}};
 handle_call(get_all_resources, _From, State) ->
   {reply, lists:map(fun({R, _}) -> R end, State#state.active ++ State#state.idle), State};
 handle_call(get_state, _From, State) ->
@@ -207,14 +204,14 @@ handle_cast({return, Resource, Requester}, State) ->
           end,
           {noreply, State#state{active = lists:keydelete(Resource, 1, Active), idle = New_idle}};
         _ ->
-          [Waiting_client | Others] = lists:reverse(Waiting),
+          {Others, [Waiting_client]} = lists:split(length(Waiting) - 1, Waiting),
           case (not State#state.test_on_borrow) orelse Factory_mod:validate(Rsrc_MD, Resource) of
             true ->
 %  io:format(user, " --- resource_pool_srv:handle_cast(return, ..): Wait_clt:~p Other_Wait:~p ~n", [Waiting_client, Others]),
               Factory_mod:passivate(Rsrc_MD, Resource),
               Factory_mod:activate({Rsrc_MD, Waiting_client}, Resource),
               Waiting_client ! {ok, Resource},
-              {noreply, State#state{active = lists:keyreplace(Resource, 1, Active, {Resource, {tmp, Waiting_client}}), waiting = lists:reverse(Others)}};
+              {noreply, State#state{active = lists:keyreplace(Resource, 1, Active, {Resource, {tmp, Waiting_client}}), waiting = Others}};
             false ->
               Factory_mod:destroy(Rsrc_MD, Resource),
               {noreply, State#state{active = lists:keydelete(Resource, 1, Active)}}
@@ -245,25 +242,13 @@ handle_cast({remove, {Resource, _}}, #state{idle = Idle, factory_module = Factor
           {noreply, State#state{idle = New_idle}}
       end
   end;
-handle_cast(clear, #state{active = Active, idle = Idle, factory_module = Factory_mod} = State) ->
-  lists:foreach(
-    fun ({Rsrc, _}) -> Factory_mod:destroy(State#state.resource_metadata, Rsrc) end, 
-    Active
-  ),
-  lists:foreach(
-    fun ({Rsrc, Pid}) -> Pid ! cancel, Factory_mod:destroy(State#state.resource_metadata, Rsrc) end, 
-    Idle
-  ),
+handle_cast(clear, #state{active = Active, idle = Idle, factory_module = Factory_mod, resource_metadata = Rsrc_MD} = State) ->
+  [Factory_mod:destroy(Rsrc_MD, Rsrc) || {Rsrc, _} <- Active],
+  [begin Pid ! cancel, Factory_mod:destroy(Rsrc_MD, Rsrc) end || {Rsrc, Pid} <- Idle],
   {noreply, State#state{active = [], idle = []}};
-handle_cast(close, #state{active = Active, idle = Idle, factory_module = Factory_mod} = State) ->
-  lists:foreach(
-    fun ({Rsrc, _}) -> Factory_mod:destroy(State#state.resource_metadata, Rsrc) end, 
-    Active
-  ),
-  lists:foreach(
-    fun ({Rsrc, Pid}) -> Pid ! cancel, Factory_mod:destroy(State#state.resource_metadata, Rsrc) end, 
-    Idle
-  ),
+handle_cast(close, #state{active = Active, idle = Idle, factory_module = Factory_mod, resource_metadata = Rsrc_MD} = State) ->
+  [Factory_mod:destroy(Rsrc_MD, Rsrc) || {Rsrc, _} <- Active],
+  [begin Pid ! cancel, Factory_mod:destroy(Rsrc_MD, Rsrc) end || {Rsrc, Pid} <- Idle],
   {stop, normal, State}.
 
 %% handle_info/2
