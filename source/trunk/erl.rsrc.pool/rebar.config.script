@@ -1,0 +1,1 @@
+lists:keystore(edoc_opts, 1, CONFIG, {edoc_opts, [{overview, [os:getenv("HOME"), "overview.edoc"]}]}).
