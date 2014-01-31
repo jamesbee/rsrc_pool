@@ -1,31 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- ====================================================================== 
-
-		erl.rsrc.pool    
-		description
-
-		Alexei krasnopolski
-====================================================================== -->
 <project name="erl.rsrc.pool" default="default">
 	<description>
 		Ant script to run some maintanence tasks:
 			- document generating program
 	</description>
-	<!--property environment="env"/-->
-  <property file="${basedir}/build.properties"/>
 
 	<!--=================================
 				target: default
 			=================================-->
-	<target name="default" depends="" description="run doc generation">
-		<delete dir="${basedir}/doc" includes="*" />
-		<exec executable="${env.ERL_ROOT}/bin/erl" dir="${basedir}/ebin" >
-			<arg line="-noshell"/>
-			<arg line="-s c cd ${basedir}/ebin"/>
-			<arg line="-run doc gen ${basedir} ${version}"/> 
-			<arg line="-s init stop"/>
-		</exec>
-		<copy file="${basedir}/priv/stylesheet.css" tofile="${basedir}/doc/stylesheet.css" overwrite="true"/>
+	<target name="default" depends="" description="run after doc generation">
 <!-- add sourceforge logo image-->
 		<replace dir="${basedir}/doc" includes="*.html" summary="yes">
 			<replacetoken><![CDATA[<td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td>]]></replacetoken>
