@@ -36,9 +36,11 @@
 %% API Functions
 %%
 
-gen([Dir, Version]) ->
-	io:format(">>>> gen() in directory ~p ~n", [Dir]),
-	edoc:application('', Dir, 
+gen([_Dir, Version]) ->
+	io:format(">>>> gen() in directory ~p ~n", [_Dir]),
+	{ok, Dir} = file:get_cwd(),
+  io:format(">>>> gen() in directory ~p ~n", [Dir]),
+  edoc:application('', Dir, 
 				[{def, [{version, Version}]},
 				 {overview, [Dir, "/src/overview.edoc"]},
 				 {source_path, [[Dir, "/examples/"]]}, 

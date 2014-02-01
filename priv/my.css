@@ -60,6 +60,8 @@ pre {
 
 code {
   font-family: Lucida Console, Monospace;
+  font-weight: bold;
+  color:rgb(0,0,100);
 }
 
 dt {
@@ -77,4 +79,9 @@ table {
 }
 td {
 	padding: 3
+}
+
+pre span
+{
+  color: blue; font-weight:200
 }
