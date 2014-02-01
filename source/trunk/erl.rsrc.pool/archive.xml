@@ -9,6 +9,7 @@
       <fileset dir="${basedir}" casesensitive="yes">
         <include name="doc/**/*"/>
         <include name="ebin/**/*.beam"/>
+        <include name="ebin/**/*.app"/>
         <include name="include/**/*.hrl"/>
         <include name="src/**/*.e*"/>
         <include name="src/**/*.src"/>
