@@ -1,0 +1,7 @@
+
+= Resource Pool =
+
+
+== Introduction ==
+
+Reusing resources that have time and memory cost to create can dramatically improve application performance.

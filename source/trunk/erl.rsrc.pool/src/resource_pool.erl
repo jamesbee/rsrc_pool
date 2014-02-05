@@ -113,7 +113,8 @@ new(Pool_name, Factory_module, Resource_metadata) ->
 %%  </dd>
 %%</dl>
 new(Pool_name, Factory_module, Resource_metadata, Options) ->
-  FailedOptions = lists:filter(fun({Key, _}) -> not lists:member(Key, ?OPTION_NAMES) end, Options),
+%  FailedOptions = lists:filter(fun({Key, _}) -> not lists:member(Key, ?OPTION_NAMES) end, Options),
+  FailedOptions = [X || {Key, _} = X <- Options, not lists:member(Key, ?OPTION_NAMES)],
   case FailedOptions of
     [] ->
       case is_factory(Factory_module) of
