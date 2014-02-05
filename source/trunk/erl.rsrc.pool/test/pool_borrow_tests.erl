@@ -1,5 +1,5 @@
 %%
-%% Copyright (C) 2010-2013 by krasnop@bellsouth.net (Alexei Krasnopolski)
+%% Copyright (C) 2013-2014 by krasnop@bellsouth.net (Alexei Krasnopolski)
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -15,9 +15,9 @@
 %%
 
 %% @hidden
-%% @since 2012-12-01
-%% @copyright 2010-2013 Alexei Krasnopolski
-%% @author Alexei Krasnopolski <krasnop@bellsouth.net> [http://crasnopolski.com/]
+%% @since 2013-02-20
+%% @copyright 2013-2014 Alexei Krasnopolski
+%% @author Alexei Krasnopolski <krasnop@bellsouth.net> [http://krasnopolski.org/]
 %% @version {@version}
 %% @doc This module is running unit tests for helper_common module.
 
