@@ -105,47 +105,11 @@ get_option_value(Name, Options, Default_value) ->
 %% @private
 %% @doc <a href="http://www.erlang.org/doc/man/gen_server.html#Module:handle_call-3">gen_server:handle_call/3</a>
 %% 
-handle_call(borrow, {Owner, _} = From, State) ->
-  #state{active = Active, idle = Idle, factory_module = Factory_mod, resource_metadata = Rsrc_MD, waiting = Waiting,
-         when_exhausted_action = Action} = State,
+handle_call(borrow, From, #state{active = Active, idle = Idle} = State) ->
   Num_active = length(Active),
   Num_idle = length(Idle),
 %  io:format(user, " >>> resource_pool_srv:handle_call(borrow, ..) from ~p : ~p  ~p ~p~n", [Owner, Active, Idle, State#state.waiting]),
-  if
-    (State#state.max_active > 0) andalso ((Num_active >= State#state.max_active) and (Action =/= grow)) -> 
-      case Action of
-        fail -> {reply, {error, pool_exhausted}, State};
-        block -> 
-          case lists:member(Owner, Waiting) of
-            true  -> {reply, {wait, State#state.max_wait}, State};
-            false -> {reply, {wait, State#state.max_wait}, State#state{waiting = [Owner | Waiting]}}
-          end
-      end;
-    Num_idle =< State#state.min_idle ->
-      case Factory_mod:create(Rsrc_MD) of
-        {ok, Resource} when (Num_idle =:= State#state.min_idle) ->
-          Factory_mod:activate({Rsrc_MD, Owner}, Resource),
-          {reply, {ok, Resource}, State#state{active = [{Resource, Owner} | Active]}};
-        {ok, Resource} ->
-          handle_call(borrow, From, State#state{idle = add_to_idle(Resource, State)});
-        {error, Err} ->
-          {reply, {error, Err}, State}
-      end;
-    true ->
-      case State#state.fifo of
-        true  -> [{Resource, Pid} | New_idle] = Idle;
-        false -> {New_idle, [{Resource, Pid}]} = lists:split(Num_idle - 1, Idle) 
-      end,
-      Pid ! cancel,
-      case (not State#state.test_on_borrow) orelse Factory_mod:validate(Rsrc_MD, Resource) of
-        true ->
-          Factory_mod:activate({Rsrc_MD, Owner}, Resource),
-          {reply, {ok, Resource}, State#state{idle = New_idle, active = [{Resource, Owner} | Active]}};
-        false ->
-          Factory_mod:destroy(Rsrc_MD, Resource),
-          handle_call(borrow, From, State#state{idle = New_idle})
-      end
-  end;
+  process_borrow(From, State, Num_active, Num_idle);
 handle_call({ack_borrow, {error, pool_timeout}}, {Waiting_client, _}, #state{active = Active, waiting = Waiting} = State) ->  
 %  io:format(user, " >>> resource_pool_srv:handle_call(ack_borrow, ..) from: ~p receive:~p active:~p~n", [Waiting_client, Receive, Active]),
   case lists:keytake({tmp, Waiting_client}, 2, Active) of
@@ -310,3 +274,44 @@ add_to_idle(Resource, #state{idle = Idle, factory_module = Factory_mod, resource
   end),
   [{Resource, Pid} | Idle].
 
+%% @spec process_borrow(From :: tuple(), State::#state{}, Num_active :: integer(), Num_idle :: integer()) -> {reply, Reply, State}
+%% @doc
+%% @private
+process_borrow({Owner, _}, #state{waiting = Waiting, when_exhausted_action = Action} = State, Num_active, _Num_idle) when
+    (State#state.max_active > 0) andalso 
+    ((Num_active >= State#state.max_active) and (State#state.when_exhausted_action =/= grow)) -> 
+  case Action of
+    fail -> {reply, {error, pool_exhausted}, State};
+    block -> 
+      case lists:member(Owner, Waiting) of
+        true  -> {reply, {wait, State#state.max_wait}, State};
+        false -> {reply, {wait, State#state.max_wait}, State#state{waiting = [Owner | Waiting]}}
+      end
+  end;
+process_borrow({Owner, _} = From, #state{active = Active, factory_module = Factory_mod, resource_metadata = Rsrc_MD} = State, _Num_active, Num_idle) when
+    Num_idle =< State#state.min_idle ->
+  case Factory_mod:create(Rsrc_MD) of
+    {ok, Resource} when (Num_idle =:= State#state.min_idle) ->
+      Factory_mod:activate({Rsrc_MD, Owner}, Resource),
+      {reply, {ok, Resource}, State#state{active = [{Resource, Owner} | Active]}};
+    {ok, Resource} ->
+      handle_call(borrow, From, State#state{idle = add_to_idle(Resource, State)});
+    {error, Err} ->
+      {reply, {error, Err}, State}
+  end;
+process_borrow({Owner, _} = From, #state{active = Active, idle = Idle, factory_module = Factory_mod, resource_metadata = Rsrc_MD} = State, _Num_active, Num_idle) ->
+  {Resource, Pid, New_idle} =
+  case State#state.fifo of
+    true  -> [{Rsrc, P} | N_idle] = Idle, {Rsrc, P, N_idle};
+    false -> {N_idle, [{Rsrc, P}]} = lists:split(Num_idle - 1, Idle), {Rsrc, P, N_idle} 
+  end,
+  Pid ! cancel,
+  case (not State#state.test_on_borrow) orelse Factory_mod:validate(Rsrc_MD, Resource) of
+    true ->
+      Factory_mod:activate({Rsrc_MD, Owner}, Resource),
+      {reply, {ok, Resource}, State#state{idle = New_idle, active = [{Resource, Owner} | Active]}};
+    false ->
+      Factory_mod:destroy(Rsrc_MD, Resource),
+      handle_call(borrow, From, State#state{idle = New_idle})
+  end.
+  

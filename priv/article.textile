@@ -1,7 +1,107 @@
-
 = Resource Pool =
+
+{{CodeSnippet|Code listing 2.2: Create the Agent Information File|<pre>
+</pre>}}
+<table width="100%" border="0"><tr><td bgcolor="#bbffbb"><p class="note"><b>Note: </b>Control-D to terminate</p></td></tr></table>
 
 
 == Introduction ==
 
 Reusing resources that have time and memory cost to create can dramatically improve application performance.
+
+Resource pool project was inspired by Apache Commons Pool library and API was borrowed from there. But internal 
+implementation is completely different and is using Erlang OTP design principles and Erlang concurrent model. Resource Pool
+is Erlang application library.   
+
+== Design ==
+      +-Pool---------{0,0}-+
+      |                    |
+      | +------+  +------+ |
+      | |      |  |      | |
+      | |Active|  | Idle | |
+      | |      |  |      | |
+      | +------+  +------+ |
+      +--------------------+
+  
+== Operations ==
+{{CodeSnippet|Listing 1: Create resource pool|<pre>
+</pre>}}
+=== borrow ===
+
+      +-Pool-----------{1,0}-+          +-Pool-----------{2,0}-+
+      |                      |          |                      |
+      | Active--+  Idle----+ |          | Active--+  Idle----+ |
+      | |       |  |       | |          | |       |  |       | |
+      | |       |  |       | |    =>    | | <R.2> |  |       | |
+      | | <R.1> |  |       | |          | | <R.1> |  |       | |
+      | +-------+  +-------+ |          | +-------+  +-------+ |
+      +----------------------+          +----------------------+
+      
+      
+      
+      +-Pool-----------{1,2}-+          +-Pool-----------{2,1}-+
+      |                      |          |                      |
+      | Active--+  Idle----+ |          | Active--+  Idle----+ |
+      | |       |  |       | |          | |       |  |       | |
+      | |       |  | <R.2> | |    =>    | | <R.2> |  |       | |
+      | | <R.1> |  | <R.3> | |          | | <R.1> |  | <R.3> | |
+      | +-------+  +-------+ |          | +-------+  +-------+ |
+      +----------------------+          +----------------------+
+
+=== return ===
+      
+      +-Pool-----------{2,1}-+          +-Pool-----------{1,2}-+
+      |                      |          |                      |
+      | Active--+  Idle----+ |          | Active--+  Idle----+ |
+      | |       |  |       | |          | |       |  |       | |
+      | | <R.2> |  |       | |    =>    | |       |  | <R.2> | |
+      | | <R.1> |  | <R.3> | |          | | <R.1> |  | <R.3> | |
+      | +-------+  +-------+ |          | +-------+  +-------+ |
+      +----------------------+          +----------------------+
+
+=== add ===
+      
+      +-Pool-----------{2,1}-+          +-Pool-----------{2,2}-+
+      |                      |          |                      |
+      | Active--+  Idle----+ |          | Active--+  Idle----+ |
+      | |       |  |       | |          | |       |  |       | |
+      | | <R.2> |  |       | |    =>    | | <R.2> |  | <R.4> | |
+      | | <R.1> |  | <R.3> | |          | | <R.1> |  | <R.3> | |
+      | +-------+  +-------+ |          | +-------+  +-------+ |
+      +----------------------+          +----------------------+
+
+=== invalidate ===
+      
+      +-Pool-----------{2,1}-+          +-Pool-----------{1,1}-+
+      |                      |          |                      |
+      | Active--+  Idle----+ |          | Active--+  Idle----+ |
+      | |       |  |       | |          | |       |  |       | |
+      | | <R.2> |  |       | |    =>    | |       |  |       | |
+      | | <R.1> |  | <R.3> | |          | | <R.1> |  | <R.3> | |
+      | +-------+  +-------+ |          | +-------+  +-------+ |
+      +----------------------+          +----------------------+
+
+=== typical use case ===
+ 
+== Size limits ==
+=== max_active ===
+=== max_idle ===
+=== min_idle ===
+
+== Behaviour options ==
+=== Borrow with exhausted pool ===
+=== Resource checking ===
+=== Resource order in idle container ===
+=== Timing ===
+
+== Maintenance of pool instance ==
+=== new ===
+=== clear ===
+=== close ===
+=== get_num_active, get_num_idle, get_number ===
+
+== Resource factory ==
+
+== Examples ==
+=== Connection pool for MySQL driver ===
+=== Channel pool for Rabbit MQ connection ===
