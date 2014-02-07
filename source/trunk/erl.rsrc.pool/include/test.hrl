@@ -16,8 +16,8 @@
 
 -define(debug_Msg(S),
 	(begin
-		io:fwrite(user, <<"~s\n">>, [S]),
+		io:fwrite(user, <<"~s~n">>, [S]),
 		ok
 	 end)).
 -define(debug_Fmt(S, As), (?debug_Msg(io_lib:format((S), (As))))).
--define(PASSED, (?debug_Msg("    +++ Passed"))).
+-define(PASSED, (?debug_Fmt("~n~s", ["    +++ Passed"]))).

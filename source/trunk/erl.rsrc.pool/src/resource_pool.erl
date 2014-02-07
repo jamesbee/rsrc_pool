@@ -114,19 +114,19 @@ new(Pool_name, Factory_module, Resource_metadata) ->
 %%</dl>
 new(Pool_name, Factory_module, Resource_metadata, Options) ->
 %  FailedOptions = lists:filter(fun({Key, _}) -> not lists:member(Key, ?OPTION_NAMES) end, Options),
-  FailedOptions = [X || {Key, _} = X <- Options, not lists:member(Key, ?OPTION_NAMES)],
+  FailedOptions = [Key || {Key, _} <- Options, not lists:member(Key, ?OPTION_NAMES)], 
   case FailedOptions of
     [] ->
       case is_factory(Factory_module) of
         true ->
-            gen_server:start_link({local, Pool_name}, resource_pool_srv, {Options, Factory_module, Resource_metadata}, [{timeout, ?GEN_SERVER_TIMEOUT}]);
-         {error, _} = Er -> Er
+          gen_server:start_link({local, Pool_name}, resource_pool_srv, {Options, Factory_module, Resource_metadata}, [{timeout, ?GEN_SERVER_TIMEOUT}]);
+        {error, _} = Er -> Er
       end;
-    [{K, _} | T] -> {error, "Wrong options: " ++ lists:concat([K | lists:map(fun({Key, _}) -> ", " ++ atom_to_list(Key) end, T)])}
+    T -> {error, "Wrong options: " ++ string:join([atom_to_list(K) || K <- T], ", ")}
   end.
 
 %% @spec is_factory(Factory_module) -> boolean()
-%% @doc
+%% @doc Check Factory_module if it implements resource_factory behaviour.
 %% @private 
 is_factory(Factory_module) ->
   Module_info = try Factory_module:module_info(attributes) catch error:undef -> [] end,

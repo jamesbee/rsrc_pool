@@ -15,7 +15,7 @@
 %%
 
 %% @since 2013-02-20
-%% @copyright 2013 Alexei Krasnopolski
+%% @copyright 2013-2014 Alexei Krasnopolski
 %% @author Alexei Krasnopolski <krasnop@bellsouth.net> [http://krasnopolski.org/]
 %% @version {@version}
 %% @doc
