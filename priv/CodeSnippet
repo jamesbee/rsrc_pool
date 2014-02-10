@@ -1,0 +1,13 @@
+<table width="100%" cellspacing="0" cellpadding="0" style="border: thin solid #860404">
+<tr>
+<td bgcolor="#ffd" style="border-bottom:thin dashed #860404;">
+<p class="caption" style="font-weight: bold; color: #860404; margin:0.5em;">
+{{{1|Title}}}</p>
+</td></tr>
+<tr>
+<td bgcolor="#fff">
+<div style="margin-left: 0.5em; margin-right: 0.5em;">
+{{{2|Code Goes Here; use pre tags around the code to format it nicely.}}}
+</div>
+</td></tr>
+</table>

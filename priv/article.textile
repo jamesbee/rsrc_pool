@@ -1,6 +1,9 @@
 = Resource Pool =
 
+[[File:erlang.png]]
+
 {{CodeSnippet|Code listing 2.2: Create the Agent Information File|<pre>
+sample
 </pre>}}
 <table width="100%" border="0"><tr><td bgcolor="#bbffbb"><p class="note"><b>Note: </b>Control-D to terminate</p></td></tr></table>
 
@@ -8,25 +11,42 @@
 == Introduction ==
 
 Reusing resources that have time and memory cost to create can dramatically improve application performance.
-
-Resource pool project was inspired by Apache Commons Pool library and API was borrowed from there. But internal 
-implementation is completely different and is using Erlang OTP design principles and Erlang concurrent model. Resource Pool
-is Erlang application library.   
+[http://sourceforge.net/projects/erlpool Erlang resource pool] project in Sourceforge was inspired by 
+Apache Commons Pool Java library. API and main functioning principals was borrowed from there, but internal 
+implementation is completely different and is using Erlang OTP design principles and Erlang concurrent model.
 
 == Design ==
-      +-Pool---------{0,0}-+
-      |                    |
-      | +------+  +------+ |
-      | |      |  |      | |
-      | |Active|  | Idle | |
-      | |      |  |      | |
-      | +------+  +------+ |
-      +--------------------+
+
+      +-Pool-----------{0,0}-+
+      |                      |
+      | Active--+  Idle----+ |
+      | |       |  |       | |
+      | |       |  |       | |
+      | |       |  |       | |
+      | +-------+  +-------+ |
+      +----------------------+
   
 == Operations ==
-{{CodeSnippet|Listing 1: Create resource pool|<pre>
+
+First thing we have to do is create an instance of resource pool.
+
+{.{CodeSnippet|Listing 1: Create resource pool|<pre>
+  {ok, Pid} = resource_pool:new(test_pool, resource_factory)
 </pre>}}
+
+<code>test_pool</code> is a registered name for the new pool and <code>resource_factory</code> is a name of a module 
+that implements resource_factory behaviour. Now we can use <code>test_pool</code>
+or <code>Pid</code> as a reference to pool instance. Resource factory module will be responsable for creating, checking and disposing
+resource instances and is discussed in details in [[#Resource factory]] below.
+
+The common use of the resource pool is when a few concurrently running processes shares the same pool to borrow resources from it.
+
 === borrow ===
+A
+{.{CodeSnippet|Listing 2: Borrow resource from the pool|<pre>
+  Resource = resource_pool:borrow(test_pool)
+</pre>}} 
+B
 
       +-Pool-----------{1,0}-+          +-Pool-----------{2,0}-+
       |                      |          |                      |
