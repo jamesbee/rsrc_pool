@@ -16,6 +16,9 @@ Apache Commons Pool Java library. API and main functioning principals was borrow
 implementation is completely different and is using Erlang OTP design principles and Erlang concurrent model.
 
 == Design ==
+Resource pool consists of two containers: 'Active' and 'Idle'. 'Active' container keeps references to
+resources that are actively used by some processes. Oppositely 'Idle' container keeps resources that are not
+used anywhere and they are in inactive state but ready to use.
 
       +-Pool-----------{0,0}-+
       |                      |
@@ -25,7 +28,12 @@ implementation is completely different and is using Erlang OTP design principles
       | |       |  |       | |
       | +-------+  +-------+ |
       +----------------------+
-  
+
+We will use a diagram below to explain operations with pool in following text. Symbols in right of first
+line <code>-{0,0}-</code> show the load of containers: <code>-{N_active,N_idle}-</code>, where:<br/>
+<code>N_active</code> - number of active resorces;<br/>
+<code>N_idle</code> - number of idle resources.
+
 == Operations ==
 
 First thing we have to do is create an instance of resource pool.
@@ -42,12 +50,13 @@ resource instances and is discussed in details in [[#Resource factory]] below.
 The common use of the resource pool is when a few concurrently running processes shares the same pool to borrow resources from it.
 
 === borrow ===
-A
+To retrieve a resource from pool process has to call function <code>borrow</code>.
+
 {.{CodeSnippet|Listing 2: Borrow resource from the pool|<pre>
   Resource = resource_pool:borrow(test_pool)
-</pre>}} 
-B
+</pre>}}
 
+If Idle list is empty the pool creates new resource and grants it to caling process.
       +-Pool-----------{1,0}-+          +-Pool-----------{2,0}-+
       |                      |          |                      |
       | Active--+  Idle----+ |          | Active--+  Idle----+ |
@@ -56,9 +65,9 @@ B
       | | <R.1> |  |       | |          | | <R.1> |  |       | |
       | +-------+  +-------+ |          | +-------+  +-------+ |
       +----------------------+          +----------------------+
-      
-      
-      
+
+If the pool has idle resource within an idle resource just transfers to Active list and
+it is granted to caling process.
       +-Pool-----------{1,2}-+          +-Pool-----------{2,1}-+
       |                      |          |                      |
       | Active--+  Idle----+ |          | Active--+  Idle----+ |
@@ -69,7 +78,9 @@ B
       +----------------------+          +----------------------+
 
 === return ===
-      
+Process has to return a resource to the pool after the process completes using a resource.
+In other words the resource is moved from
+Active list to Idle list. Now other concurrent processes can borrow freed resource from the pool.
       +-Pool-----------{2,1}-+          +-Pool-----------{1,2}-+
       |                      |          |                      |
       | Active--+  Idle----+ |          | Active--+  Idle----+ |
@@ -80,7 +91,8 @@ B
       +----------------------+          +----------------------+
 
 === add ===
-      
+Sometimes we need just add new resource to pool. Function <code>add</code> creates new resource and
+puts it into Idle list. 
       +-Pool-----------{2,1}-+          +-Pool-----------{2,2}-+
       |                      |          |                      |
       | Active--+  Idle----+ |          | Active--+  Idle----+ |
