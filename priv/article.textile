@@ -79,8 +79,8 @@ it is granted to caling process.
 
 === return ===
 Process has to return a resource to the pool after the process completes using a resource.
-In other words the resource is moved from
-Active list to Idle list. Now other concurrent processes can borrow freed resource from the pool.
+In other words the resource is moved from Active list to Idle list. Now other concurrent 
+processes can borrow freed resource from the pool.
       +-Pool-----------{2,1}-+          +-Pool-----------{1,2}-+
       |                      |          |                      |
       | Active--+  Idle----+ |          | Active--+  Idle----+ |
@@ -103,7 +103,8 @@ puts it into Idle list.
       +----------------------+          +----------------------+
 
 === invalidate ===
-      
+If resource failed process has to let know about it to the pool. <code>invalidate</code> function marks failed resource
+as unusable and pool will be destroy it shortly. 
       +-Pool-----------{2,1}-+          +-Pool-----------{1,1}-+
       |                      |          |                      |
       | Active--+  Idle----+ |          | Active--+  Idle----+ |
@@ -114,8 +115,36 @@ puts it into Idle list.
       +----------------------+          +----------------------+
 
 === typical use case ===
- 
+Suppose that <code>resource</code> module implements some operations under resource.
+
+{.{CodeSnippet|Listing 3: Typical use case of a resource pool|<pre>
+  case resource_pool:borrow(test_pool) of
+    {error, E} -> io:format("Error while borrow from pool, reason: ~p", [E]);
+    Resource ->
+      try
+        resource:operation(Resource),
+        resource_pool:return(test_pool, Resource)
+      catch
+        _:_ -> resource_pool:invalidate(test_pool, Resource)
+      end,
+  end,
+</pre>}}
+
+If everything is going well we see flow like this: borrow --> use --> return. When something wrong is happened during 
+resource use then we have other flow: borrow --> use --> invalidate. 
 == Size limits ==
+
+             +-Pool-----------{0,0}-+
+             |                      |
+             | Active--+  Idle----+ |
+             | |       |  |_______|_|__ max_idle
+ max_active__|_|_______|  |       | |
+             | |       |  |       | |
+             | |       |  |_______|_|__ min_idle
+             | |       |  |       | |
+             | +-------+  +-------+ |
+             +----------------------+
+
 === max_active ===
 === max_idle ===
 === min_idle ===
