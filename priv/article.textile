@@ -7,7 +7,6 @@ sample
 </pre>}}
 <table width="100%" border="0"><tr><td bgcolor="#bbffbb"><p class="note"><b>Note: </b>Control-D to terminate</p></td></tr></table>
 
-
 == Introduction ==
 
 Reusing resources that have time and memory cost to create can dramatically improve application performance.
@@ -39,7 +38,7 @@ line <code>-{0,0}-</code> show the load of containers: <code>-{N_active,N_idle}-
 First thing we have to do is create an instance of resource pool.
 
 {.{CodeSnippet|Listing 1: Create resource pool|<pre>
-  {ok, Pid} = resource_pool:new(test_pool, resource_factory)
+  {ok, Pid} = resource_pool:new(test_pool, resource_factory, resource_metadata)
 </pre>}}
 
 <code>test_pool</code> is a registered name for the new pool and <code>resource_factory</code> is a name of a module 
@@ -104,7 +103,7 @@ puts it into Idle list.
 
 === invalidate ===
 If resource failed process has to let know about it to the pool. <code>invalidate</code> function marks failed resource
-as unusable and pool will be destroy it shortly. 
+as unusable and pool will be destroy it shortly.
       +-Pool-----------{2,1}-+          +-Pool-----------{1,1}-+
       |                      |          |                      |
       | Active--+  Idle----+ |          | Active--+  Idle----+ |
@@ -127,12 +126,24 @@ Suppose that <code>resource</code> module implements some operations under resou
       catch
         _:_ -> resource_pool:invalidate(test_pool, Resource)
       end,
-  end,
+  end
 </pre>}}
 
 If everything is going well we see flow like this: borrow --> use --> return. When something wrong is happened during 
 resource use then we have other flow: borrow --> use --> invalidate. 
 == Size limits ==
+We can setup some features and parameters for a resource pool during instantiation by using <code>option</code> parameter
+of <code>new</code> operation (see [[#new]]):
+<pre>
+  {ok, Pid} = resource_pool:new(test_pool, resource_factory, resource_metadata, options)
+</pre>
+<code>Options</code> list contains a few values describing scales, limitation and behavior of a pool. Some of them are
+resposible for size of Active and Idle containers:
+<pre>
+ max_active,
+ max_idle,
+ min_idle
+</pre>
 
              +-Pool-----------{0,0}-+
              |                      |
@@ -146,13 +157,71 @@ resource use then we have other flow: borrow --> use --> invalidate.
              +----------------------+
 
 === max_active ===
+Maximum size of Active list is 8 by default. If it reaches the limit following <code>borrow</code> operation will be blocked or 
+failed (see [[#Borrow with exhausted pool]] for details). The value -1 (or any negative) means no limitation on Active list size.
+Example of use: 
+<pre>
+  {ok, Pid} = resource_pool:new(test_pool, resource_factory, [], [{max_active, 20}])
+</pre>
 === max_idle ===
+Maximum size of Idle list equals max_active by default. If it reaches the limit then following <code>return</code> operation 
+will be finished with destroying of the returned resource. The value -1 (or any negative) means no limitation on Idle list maximum size.
+Example of use: 
+<pre>
+  {ok, Pid} = resource_pool:new(test_pool, resource_factory, [], [{max_active, 20}, {max_idle, 10}])
+</pre>
 === min_idle ===
-
+Minimum size of Idle list is 0 by default. If it reaches the limit then following <code>borrow</code> operation will
+successfully supplies a resource to invoker and then pool will additionally create new resource in Idle container to provide 
+min_idle condition. The value -1 (or any negative) means no limitation on Idle list minimum size.
+Example of use: 
+<pre>
+  {ok, Pid} = resource_pool:new(test_pool, resource_factory, [], [{max_active, 20}, {max_idle, 10}, {min_idle, 3}])
+</pre>
 == Behaviour options ==
 === Borrow with exhausted pool ===
+When we set max_active greater then 0 and size of Active list reaches this value then the pool is exhausted and pool's behaivior 
+depends on when_exhausted_action option value:
+
+; {when_exhausted_action, fail}  : <code>borrow</code> function on exhausted pool returns {error, pool_exhausted}.
+; {when_exhausted_action, block} : <code>borrow</code> function on exhausted pool is blocked until a new or idle object is available. Waiting time period limited  by value of other option max_wait (see [[#Timing]]).
+; {when_exhausted_action, grow}  : <code>borrow</code> function on exhausted pool returns new resource and size of Active Idle grows. In this case max_Idle option is just ignored.
+Default value is '''block'''. 
+Example of use: 
+<pre>
+  {ok, Pid} = resource_pool:new(test_pool, resource_factory, [], [{max_active, 20}, {when_exhausted_action, fail}])
+</pre>
+ 
 === Resource checking ===
+Resource pool can check status of managed resources. Options <code>test_on_borrow</code> and <code>test_on_return</code>
+control how pool tests resources: before providing resource to invoker '''{test_on_borrow, true}''' and after a resource was returned
+to pool '''{test_on_return, true}'''. If pool finds that the resource is not alive during test then the resource will be destroyed.  
 === Resource order in idle container ===
+Option <code>fifo</code> (first-input-first-output) controls order of extracting a resources from Idle list. Diagrams below illustrate this. Suppose we
+fill out Idle list in order: <R.1> was first, <R.2> is next, then <R.3>. Resource <R.4> is active in given moment. If
+'''{fifo, true}''' is set the <code>borrow</code> operation leads to situation below: resource <R.1> was came first and
+it becames active now (first out).  
+      +-Pool-----------{1,2}-+          +-Pool-----------{2,1}-+
+      |                      |          |                      |
+      | Active--+  Idle----+ |          | Active--+  Idle----+ |
+      | |       |  | <R.3> | |          | |       |  |       | |
+      | |       |  | <R.2> | |    =>    | | <R.1> |  | <R.3> | |
+      | | <R.4> |  | <R.1> | |          | | <R.4> |  | <R.2> | |
+      | +-------+  +-------+ |          | +-------+  +-------+ |
+      +----------------------+          +----------------------+
+
+If '''{fifo, false}''' is set it means that order will be last-input-first-output. <code>borrow</code> operation makes active resource
+<R.3> (last input).
+      +-Pool-----------{1,2}-+          +-Pool-----------{2,1}-+
+      |                      |          |                      |
+      | Active--+  Idle----+ |          | Active--+  Idle----+ |
+      | |       |  | <R.3> | |          | |       |  |       | |
+      | |       |  | <R.2> | |    =>    | | <R.3> |  | <R.2> | |
+      | | <R.4> |  | <R.1> | |          | | <R.4> |  | <R.1> | |
+      | +-------+  +-------+ |          | +-------+  +-------+ |
+      +----------------------+          +----------------------+
+Default value for <code>fifo</code> is <code>false</code>.
+
 === Timing ===
 
 == Maintenance of pool instance ==

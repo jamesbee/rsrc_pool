@@ -96,7 +96,7 @@ new(Pool_name, Factory_module, Resource_metadata) ->
 %%    <dt>grow</dt>
 %%    <dd>will create a new object and return it (essentially making <i>max_active</i> meaningless.)</dd>
 %%  </dl>The default <code>when_exhausted_action</code> setting is <code>block</code> and 
-%%  the default <code>maxWait</code> setting is <i>infinity</i>. By default, therefore, <code>borrow</code> will
+%%  the default <code>max_wait</code> setting is <i>infinity</i>. By default, therefore, <code>borrow</code> will
 %%  block infinitely until an idle instance becomes available.
 %%  </dd>
 %%
