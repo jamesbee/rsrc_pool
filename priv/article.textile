@@ -195,7 +195,8 @@ Example of use:
 === Resource checking ===
 Resource pool can check status of managed resources. Options <code>test_on_borrow</code> and <code>test_on_return</code>
 control how pool tests resources: before providing resource to invoker '''{test_on_borrow, true}''' and after a resource was returned
-to pool '''{test_on_return, true}'''. If pool finds that the resource is not alive during test then the resource will be destroyed.  
+to pool '''{test_on_return, true}'''. If pool finds that the resource is not alive during test then the resource will be destroyed.
+
 === Resource order in idle container ===
 Option <code>fifo</code> (first-input-first-output) controls order of extracting a resources from Idle list. Diagrams below illustrate this. Suppose we
 fill out Idle list in order: <R.1> was first, <R.2> is next, then <R.3>. Resource <R.4> is active in given moment. If
@@ -223,6 +224,12 @@ If '''{fifo, false}''' is set it means that order will be last-input-first-outpu
 Default value for <code>fifo</code> is <code>false</code>.
 
 === Timing ===
+<code>max_wait</code> option defines the maximum amount of time to wait when the <code>borrow</code> function is invoked,
+the pool is exhausted and <i>when_exhausted_action</i> equals <code>block</code>.
+
+<code>max_idle_time</code> option defines non terminated period of time an resource instance may sit idle in the pool, 
+with the extra condition that at least <code>min_idle</code> amount of object remain in the pool. No resources 
+will be evicted from the pool due to maximum idle time limit if <code>max_idle_time</code> equals '''infinity'''.
 
 == Maintenance of pool instance ==
 === new ===
