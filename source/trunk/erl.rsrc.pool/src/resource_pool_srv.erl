@@ -302,8 +302,8 @@ process_borrow({Owner, _} = From, #state{active = Active, factory_module = Facto
 process_borrow({Owner, _} = From, #state{active = Active, idle = Idle, factory_module = Factory_mod, resource_metadata = Rsrc_MD} = State, _Num_active, Num_idle) ->
   {Resource, Pid, New_idle} =
   case State#state.fifo of
-    true  -> [{Rsrc, P} | N_idle] = Idle, {Rsrc, P, N_idle};
-    false -> {N_idle, [{Rsrc, P}]} = lists:split(Num_idle - 1, Idle), {Rsrc, P, N_idle} 
+    false  -> [{Rsrc, P} | N_idle] = Idle, {Rsrc, P, N_idle};
+    true -> {N_idle, [{Rsrc, P}]} = lists:split(Num_idle - 1, Idle), {Rsrc, P, N_idle} 
   end,
   Pid ! cancel,
   case (not State#state.test_on_borrow) orelse Factory_mod:validate(Rsrc_MD, Resource) of
