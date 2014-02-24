@@ -233,11 +233,30 @@ will be evicted from the pool due to maximum idle time limit if <code>max_idle_t
 
 == Maintenance of pool instance ==
 === new ===
+Lets look more closely at resource pool instantiation.
+{.{CodeSnippet|Listing 1: Create an resource pool|<pre>
+  {ok, Pid} = resource_pool:new(pool_name, resource_factory, resource_metadata)
+</pre>}}
+
 === clear ===
+{.{CodeSnippet|Listing 1: Clear an resource pool|<pre>
+  ok = resource_pool:clear(pool_name)
+</pre>}}
 === close ===
+{.{CodeSnippet|Listing 1: Close an resource pool|<pre>
+  ok = resource_pool:close(pool_name)
+</pre>}}
 === get_num_active, get_num_idle, get_number ===
 
 == Resource factory ==
+Before we do not go in details of an resources managed by pool. We was thinking about its as abstract resource without any
+features and properties. It is not true in reality. Real resources (as connections, sockets, channels and so on) are living in pool
+are composed objects with number of properties and they have an life cycle: we have to create them, test, use and dispose them.
+Resource factory separate pool functionality from managed resources functionality and allows to easy customize pool for
+different types of resources.
+
+<code>resource_factory</code> module defines '''behaivior''' that we have to implement while designing of resource factory module
+for given resource.  
 
 == Examples ==
 === Connection pool for MySQL driver ===

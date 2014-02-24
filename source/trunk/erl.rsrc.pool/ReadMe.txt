@@ -10,3 +10,7 @@ Version 1.0.2 :
 3  Added test case for max_active < 0 option.
 4. Added test case for max_idle < 0 option.
 5. Added test cases for activate and passivate actions of resource factory.
+
+Version 1.0.3 :
+
+1. Fixed up a bug with 'fifo' option of the pool.
