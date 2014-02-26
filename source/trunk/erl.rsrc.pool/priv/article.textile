@@ -183,9 +183,11 @@ Example of use:
 When we set max_active greater then 0 and size of Active list reaches this value then the pool is exhausted and pool's behaivior 
 depends on when_exhausted_action option value:
 
-; {when_exhausted_action, fail}  : <code>borrow</code> function on exhausted pool returns {error, pool_exhausted}.
-; {when_exhausted_action, block} : <code>borrow</code> function on exhausted pool is blocked until a new or idle object is available. Waiting time period limited  by value of other option max_wait (see [[#Timing]]).
-; {when_exhausted_action, grow}  : <code>borrow</code> function on exhausted pool returns new resource and size of Active Idle grows. In this case max_Idle option is just ignored.
+; {when_exhausted_action, fail} : <code>borrow</code> function on exhausted pool returns {error, pool_exhausted}.
+; {when_exhausted_action, block} : <code>borrow</code> function on exhausted pool is blocked until a new or idle object is available. 
+: Waiting time period limited  by value of other option max_wait (see [[#Timing]]).
+; {when_exhausted_action, grow}  : <code>borrow</code> function on exhausted pool returns new resource and size of Active Idle grows.
+: In this case max_Idle option is just ignored.
 Default value is '''block'''. 
 Example of use: 
 <pre>
@@ -255,8 +257,18 @@ are composed objects with number of properties and they have an life cycle: we h
 Resource factory separate pool functionality from managed resources functionality and allows to easy customize pool for
 different types of resources.
 
-<code>resource_factory</code> module defines '''behaivior''' that we have to implement while designing of resource factory module
-for given resource.  
+<code>resource_factory</code> module defines '''behaivior''' of generic resource factory. We have to implement this 
+'''behaivior''' while designing of resource factory module for given resource. The module has to consist following functions:
+
+; <code>create(Resource_metadata)</code> : The function creates new instance of the resource. In Erlang word this is a new
+: process in most cases. <code>Resource_metadata</code>
+; <code>destroy(Resource_metadata, Resource)</code> : bla bla.
+; <code>validate(Resource_metadata, Resource)</code> : ok
+; <code>activate(Resource_metadata, Resource)</code> : ok
+; <code>passivate(Resource_metadata, Resource)</code> : ok
+: doki
+
+
 
 == Examples ==
 === Connection pool for MySQL driver ===
