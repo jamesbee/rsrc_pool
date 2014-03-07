@@ -35,7 +35,7 @@ simple implementation resource factory for testing purpose.</li>
 <h3>Getting started</h3>
 <ol>
   <li>Create instance of Resource Pool<br/> 
-    <pre>{ok, Pid} = resource_pool:new(test_pool, resource_factory)</pre>
+    <pre>{ok, Pid} = resource_pool:new(test_pool, resource_factory, [])</pre>
     where: 
     <ul style="list-style-type:none;">
       <li><code>test_pool</code> - registered name of the new pool;</li>

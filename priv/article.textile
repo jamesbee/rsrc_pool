@@ -55,7 +55,7 @@ To retrieve a resource from pool process has to call function <code>borrow</code
   Resource = resource_pool:borrow(test_pool)
 </pre>}}
 
-If Idle list is empty the pool creates new resource and grants it to caling process.
+If Idle list is empty the pool creates new resource and grants it to calling process.
       +-Pool-----------{1,0}-+          +-Pool-----------{2,0}-+
       |                      |          |                      |
       | Active--+  Idle----+ |          | Active--+  Idle----+ |
@@ -257,18 +257,19 @@ are composed objects with number of properties and they have an life cycle: we h
 Resource factory separate pool functionality from managed resources functionality and allows to easy customize pool for
 different types of resources.
 
-<code>resource_factory</code> module defines '''behaivior''' of generic resource factory. We have to implement this 
-'''behaivior''' while designing of resource factory module for given resource. The module has to consist following functions:
+<code>resource_factory</code> module defines '''behavior''' of generic resource factory. We have to implement this 
+'''behavior''' while designing of resource factory module for given resource. The module has to consist following functions:
 
-; <code>create(Resource_metadata)</code> : The function creates new instance of the resource. In Erlang word this is a new
-: process in most cases. <code>Resource_metadata</code>
-; <code>destroy(Resource_metadata, Resource)</code> : bla bla.
-; <code>validate(Resource_metadata, Resource)</code> : ok
-; <code>activate(Resource_metadata, Resource)</code> : ok
-; <code>passivate(Resource_metadata, Resource)</code> : ok
-: doki
-
-
+; <code>create(Resource_metadata::term())</code> : The function creates new instance of the resource. In Erlang word this is a new
+: process in most cases. <code>Resource_metadata</code> is a data structure that describes an resource. <code>Resource_metadata</code> came
+: to the pool from <code>new</code> operation and it has to be enough to create and manage the resource. Structure and contain of
+: the <code>Resource_metadata</code> is custom and it is used only by <code>resource_factory</code> but is kept as a pool state.
+; <code>destroy(Resource_metadata::term(), Resource::pid())</code> : The function destroys the resource represented by <code>Resource</code> as a '''pid'''.
+; <code>validate(Resource_metadata::term(), Resource::pid())</code> : The function check an <code>Resource</code> and returns true if the resource is valid.
+; <code>activate(Resource_metadata::term(), Resource::pid())</code> : The function is callback that is fired when pool are moving <code>Resource</code> from
+: passive state to active (from idle list to active list).
+; <code>passivate(Resource_metadata::term(), Resource::pid())</code> : The function is callback that is fired when pool are moving <code>Resource</code> from
+: active state to passive (from active list to idle list).
 
 == Examples ==
 === Connection pool for MySQL driver ===
